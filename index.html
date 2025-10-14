@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0, viewport-fit=cover">
+    <title>泰斯比哈计数器</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            height: 100vh; width: 100vw;
+            display: flex; justify-content: center; align-items: flex-start;
+            padding: calc(10vh + env(safe-area-inset-top)) 0 calc(25vh + env(safe-area-inset-bottom));
+            cursor: pointer;
+            background: #e8f3ff linear-gradient(15deg, rgba(173, 216, 230, 0.02) 0%, rgba(255, 255, 255, 0.02) 100%);
+            transition: background .3s cubic-bezier(0.2, 0, 0.1, 1);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #count {
+            font-size: clamp(10.5rem, 31vw, 23rem);
+            font-weight: 300;
+            color: #1a1e29;
+            line-height: 1.03;
+            transition: transform .12s cubic-bezier(0.34, 1.56, 0.64, 1), opacity .08s ease;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.025);
+        }
+
+        #count.jump {
+            transform: scale(1.07);
+            text-shadow: 0 3px 9px rgba(0, 0, 0, 0.04);
+            opacity: 0.94;
+        }
+
+        body.moon { 
+            background: #fff9e8 linear-gradient(15deg, rgba(255, 248, 225, 0.02) 0%, rgba(255, 255, 255, 0.02) 100%);
+        }
+        body.heart { 
+            background: #ffe8f0 linear-gradient(15deg, rgba(255, 232, 240, 0.02) 0%, rgba(255, 255, 255, 0.02) 100%);
+        }
+
+        @supports (padding: env(safe-area-inset-top)) {
+            body {
+                padding-top: calc(10vh + env(safe-area-inset-top));
+                padding-bottom: calc(25vh + env(safe-area-inset-bottom));
+            }
+        }
+    </style>
+</head>
+<body id="container" oncontextmenu="return false" ontouchmove="return false">
+    <div id="count">1</div>
+
+    <script>
+        let currentStage = 1;
+        let currentCount = 1;
+        const totalPerStage = 33;
+        const container = document.getElementById('container');
+        const countEl = document.getElementById('count');
+        let isAnimating = false; // 动画锁：全局唯一，避免重复开启导致逻辑冲突（核心修正）
+
+        // 重置初始状态：移除内部动画锁，依赖全局锁判断，避免阻塞
+        function resetToInitial() {
+            countEl.classList.add('jump');
+            setTimeout(() => {
+                currentStage = 1;
+                currentCount = 1;
+                container.classList.remove('moon', 'heart');
+                countEl.textContent = currentCount;
+                countEl.classList.remove('jump');
+                isAnimating = false; // 动画结束后，全局锁统一释放（核心修正）
+            }, 120);
+        }
+
+        // 切换下一阶段：同重置逻辑，依赖全局锁，避免重复判断
+        function switchToNextStage() {
+            countEl.classList.add('jump');
+            setTimeout(() => {
+                currentStage++;
+                currentCount = 1;
+                if (currentStage === 2) {
+                    container.classList.add('moon');
+                    container.classList.remove('heart');
+                } else if (currentStage === 3) {
+                    container.classList.add('heart');
+                    container.classList.remove('moon');
+                }
+                countEl.textContent = currentCount;
+                countEl.classList.remove('jump');
+                isAnimating = false; // 全局锁统一释放（核心修正）
+            }, 120);
+        }
+
+        // 核心点击逻辑：全局唯一判断动画锁，所有操作统一入口，无分支冲突（核心修正）
+        container.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+
+            // 1. 全局锁判断：动画中直接返回，避免重复触发（唯一判断点）
+            if (isAnimating) return;
+            isAnimating = true; // 开启全局锁，所有操作共用
+
+            // 2. 统一触发跳动动效（无重复代码）
+            countEl.classList.add('jump');
+
+            // 3. 计数逻辑：按“未到33→到33（非最后阶段）→到33（最后阶段）”排序，无逻辑漏洞
+            if (currentCount < totalPerStage) {
+                // 情况1：未到33→计数递增，动画结束释放锁
+                currentCount++;
+                countEl.textContent = currentCount;
+                setTimeout(() => {
+                    countEl.classList.remove('jump');
+                    isAnimating = false;
+                }, 120);
+            } else if (currentStage < 3) {
+                // 情况2：到33（非最后阶段）→切换阶段（无需额外锁判断）
+                switchToNextStage();
+            } else {
+                // 情况3：到33（最后阶段）→重置（无需额外锁判断）
+                resetToInitial();
+            }
+        });
+
+        container.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+        });
+
+        // 页面加载淡入：逻辑不变，保持体验流畅
+        window.addEventListener('load', () => {
+            countEl.style.opacity = 0;
+            countEl.style.transition = 'opacity .3s ease';
+            setTimeout(() => {
+                countEl.style.opacity = 1;
+            }, 100);
+        });
+    </script>
+</body>
+</html>
