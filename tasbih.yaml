@@ -1,0 +1,46 @@
+name: wizardly_manuel
+services:
+  tasbih:
+    cpu_shares: 90
+    command: []
+    container_name: tasbih
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    hostname: tasbih
+    image: nginx:alpine
+    labels:
+      icon: https://thumbs.dreamstime.com/z/tasbih-dhikr-to-god-eid-mubarak-icon-vector-illustration-tasbih-dhikr-to-god-eid-mubarak-icon-illustration-275028479.jpg
+    ports:
+      - target: 80
+        published: "10086"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /DATA/AppData/tasbih/
+        target: /usr/share/nginx/html
+    devices: []
+    cap_add: []
+    environment: []
+    networks:
+      - tasbih
+    privileged: false
+networks:
+  tasbih:
+    name: wizardly_manuel_tasbih
+    driver: bridge
+x-casaos:
+  author: self
+  category: self
+  hostname: ""
+  icon: https://thumbs.dreamstime.com/z/tasbih-dhikr-to-god-eid-mubarak-icon-vector-illustration-tasbih-dhikr-to-god-eid-mubarak-icon-illustration-275028479.jpg
+  index: /
+  is_uncontrolled: false
+  port_map: "10086"
+  scheme: http
+  store_app_id: wizardly_manuel
+  title:
+    custom: ""
+    en_us: tasbih
